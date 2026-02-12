@@ -6,6 +6,8 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { ANALYZE_PROMPT, getStyleEditPrompt } from './prompts.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -31,33 +33,7 @@ app.post('/api/analyze', upload.single('selfie'), async (req, res) => {
         const base64Image = req.file.buffer.toString('base64');
         const mimeType = req.file.mimetype;
 
-        const prompt = `당신은 전문 헤어스타일리스트이자 얼굴형 분석 전문가입니다.
-이 사진의 인물 얼굴형을 분석하고 어울리는 헤어스타일 5가지를 추천해주세요.
-
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요:
-{
-  "faceType": "얼굴형 (계란형/둥근형/각진형/하트형/긴형 중 하나)",
-  "faceFeatures": {
-    "forehead": "이마 특징 설명",
-    "cheekbones": "광대 특징 설명",
-    "jawline": "턱선 특징 설명"
-  },
-  "analysisDescription": "이 얼굴형에 대한 전체적인 분석 설명 (2-3문장)",
-  "recommendations": [
-    {
-      "name": "스타일 이름 (한국어, 예: 내추럴 레이어드컷)",
-      "match": 95,
-      "description": "이 스타일이 왜 어울리는지 설명 (2문장)",
-      "prompt": "이 사람의 머리를 이 스타일로 바꾸기 위한 영어 이미지 편집 프롬프트 (구체적이고 자세하게, 예: Change hairstyle to natural layered cut)",
-      "tip": "미용사에게 전달할 팁 (1문장)"
-    }
-  ]
-}
-
-recommendations 배열에 정확히 5개의 스타일을 포함하세요.
-match 값은 85-98 사이에서 다양하게 설정하세요.`;
-
-        console.log('🔍 얼굴형 분석 요청 (Gemini 1.5 Flash)...');
+        console.log('🔍 얼굴형 분석 요청 (Gemini 2.0 Flash)...');
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.0-flash',
@@ -65,7 +41,7 @@ match 값은 85-98 사이에서 다양하게 설정하세요.`;
                 {
                     role: 'user',
                     parts: [
-                        { text: prompt },
+                        { text: ANALYZE_PROMPT },
                         { inlineData: { mimeType, data: base64Image } }
                     ]
                 }
@@ -109,10 +85,7 @@ app.post('/api/generate-style', upload.single('selfie'), async (req, res) => {
         const base64Image = req.file.buffer.toString('base64');
         const mimeType = req.file.mimetype;
 
-        const editPrompt = `Edit this person's photo to change their hairstyle. Apply the following hairstyle: "${stylePrompt}". 
-Keep the person's face, skin tone, and features exactly the same. Only change the hairstyle. 
-Make it look natural and realistic as if the person actually has this hairstyle.
-The result should be a photorealistic image.`;
+        const editPrompt = getStyleEditPrompt(stylePrompt);
 
         const response = await imagenAi.models.generateContent({
             model: 'gemini-3-pro-image-preview',

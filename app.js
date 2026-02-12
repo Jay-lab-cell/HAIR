@@ -113,18 +113,64 @@ function renderBlurredResults(data) {
     const container = document.getElementById('style-cards-container');
     container.innerHTML = '';
 
-    data.recommendations.forEach((rec, index) => {
+    // Best Match (First Item)
+    const bestMatch = data.recommendations[0];
+    const bestMatchDiv = document.createElement('div');
+    bestMatchDiv.className = 'col-span-2 md:col-span-3 lg:col-span-5 mb-8'; // Full width
+    bestMatchDiv.innerHTML = `
+        <div class="glass-warm rounded-3xl p-1 relative overflow-hidden group border border-mint-400/30 shadow-[0_0_50px_-12px_rgba(94,234,212,0.2)]">
+            <div class="absolute top-6 left-6 z-20 bg-mint-400 text-dark-950 font-black px-4 py-1.5 rounded-full text-sm animate-pulse">
+                🏆 BEST MATCH
+            </div>
+            <div class="absolute top-6 right-6 z-20 bg-dark-950/80 backdrop-blur text-mint-400 font-bold px-4 py-1.5 rounded-full border border-mint-500/30">
+                ${bestMatch.match}% 일치
+            </div>
+            
+            <div class="relative aspect-[4/3] md:aspect-[21/9] bg-dark-900 rounded-[20px] overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-mint-500/20 via-dark-900 to-apricot-500/20 blur-xl"></div>
+                
+                <!-- Silhouette / Blur Effect -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-32 h-32 md:w-48 md:h-48 rounded-full bg-white/5 blur-3xl"></div>
+                </div>
+
+                <div class="absolute inset-0 z-10 flex flex-col items-center justify-center text-center p-6">
+                    <span class="material-symbols-outlined text-6xl md:text-8xl text-mint-200/50 mb-4 blur-sm">sentiment_spark</span>
+                    <h3 class="text-3xl md:text-5xl font-black text-white blur-md mb-2">HIDDEN STYLE</h3>
+                    <p class="text-lg text-gray-400 blur-sm max-w-lg mx-auto">AI가 분석한 당신의 얼굴형에 가장 완벽한 스타일입니다</p>
+                </div>
+
+                <!-- Lock Overlay -->
+                <div class="absolute inset-0 z-30 bg-dark-950/60 backdrop-blur-[8px] flex flex-col items-center justify-center">
+                    <div class="bg-white/10 p-4 rounded-full mb-4 border border-white/20">
+                        <span class="material-symbols-outlined text-4xl text-white">lock</span>
+                    </div>
+                    <p class="text-xl font-bold text-white mb-1">AI가 찾은 <span class="gradient-text">인생 머리</span></p>
+                    <p class="text-sm text-gray-400">지금 확인하지 않으면 평생 모를 수도 있어요</p>
+                </div>
+            </div>
+        </div>
+    `;
+    container.appendChild(bestMatchDiv);
+
+    // Other Matches (Grid)
+    data.recommendations.slice(1).forEach((rec, index) => {
         const div = document.createElement('div');
-        div.className = 'glass-warm rounded-2xl p-4 flex flex-col items-center text-center relative overflow-hidden group';
+        div.className = 'glass-warm rounded-2xl p-4 flex flex-col items-center text-center relative overflow-hidden group border border-white/5';
         div.innerHTML = `
-            <div class="blur-result absolute inset-0 bg-dark-800/80 z-10 flex items-center justify-center">
-                <span class="material-symbols-outlined text-4xl text-gray-500">lock</span>
+            <div class="absolute top-3 right-3 z-10 bg-dark-950/60 text-xs font-bold px-2 py-1 rounded text-gray-400 border border-white/10">
+                ${rec.match}%
             </div>
-            <div class="w-full aspect-[3/4] bg-dark-900 rounded-xl mb-3 overflow-hidden">
-                <div class="w-full h-full bg-gradient-to-br from-mint-500/10 to-apricot-500/10"></div>
+            <div class="w-full aspect-[3/4] bg-dark-900 rounded-xl mb-3 overflow-hidden relative">
+                <div class="w-full h-full bg-gradient-to-br from-mint-500/5 to-apricot-500/5 blur-lg"></div>
+                 <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-4xl text-gray-700 blur-[2px]">face</span>
+                </div>
+                <div class="absolute inset-0 bg-dark-950/40 backdrop-blur-[4px] flex items-center justify-center">
+                     <span class="material-symbols-outlined text-2xl text-white/50">lock</span>
+                </div>
             </div>
-            <h3 class="font-bold text-gray-300 blur-sm">HIDDEN</h3>
-            <p class="text-xs text-mint-400 mt-1 blur-sm">Match 98%</p>
+            <h3 class="font-bold text-gray-400 blur-[3px] text-sm">HIDDEN</h3>
         `;
         container.appendChild(div);
     });
