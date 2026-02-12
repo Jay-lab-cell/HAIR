@@ -17,6 +17,10 @@ test_*.js
 check_*.js
 list_models.js
 
+# Test photos / personal images
+테스트/
+uploads/
+
 # IDE
 .vscode/
 .idea/
