@@ -1,2 +1,26 @@
+# Dependencies
 node_modules/
+
+# Environment variables (API keys, secrets)
 .env
+.env.*
+
+# Vercel
+.vercel
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test/debug scripts (may contain keys)
+test_*.js
+check_*.js
+list_models.js
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

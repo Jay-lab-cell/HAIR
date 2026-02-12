@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Initialize Gemini
-// using gemini-1.5-flash-001 as it is stable and cost-effective (free tier compatible)
+// using gemini-2.0-flash as it is stable and cost-effective (free tier compatible)
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 app.use(cors());
@@ -60,7 +60,7 @@ match 값은 85-98 사이에서 다양하게 설정하세요.`;
         console.log('🔍 얼굴형 분석 요청 (Gemini 1.5 Flash)...');
 
         const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash-001',
+            model: 'gemini-2.0-flash',
             contents: [
                 {
                     role: 'user',
@@ -94,56 +94,71 @@ match 값은 85-98 사이에서 다양하게 설정하세요.`;
 });
 
 // ==========================================
-// POST /api/generate-style — 헤어스타일 합성
+// POST /api/generate-style — 헤어스타일 합성 (Gemini 3 Pro Image)
 // ==========================================
+const IMAGEN_API_KEY = process.env.IMAGEN_API_KEY;
+const imagenAi = new GoogleGenAI({ apiKey: IMAGEN_API_KEY });
+
 app.post('/api/generate-style', upload.single('selfie'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: '이미지가 필요합니다' });
 
         const { stylePrompt, styleName } = req.body;
-        console.log(`🎨 스타일 생성 요청: ${styleName}...`);
+        console.log(`🎨 스타일 이미지 생성 요청: ${styleName} (Gemini 3 Pro Image)...`);
 
         const base64Image = req.file.buffer.toString('base64');
         const mimeType = req.file.mimetype;
 
-        // NOTE: Free tier keys often don't support Imagen generation.
-        // We will use Gemini 1.5 Flash to DESCRIBE the style transformation in text,
-        // and return the original image properly (to avoid breaking the UI).
+        const editPrompt = `Edit this person's photo to change their hairstyle. Apply the following hairstyle: "${stylePrompt}". 
+Keep the person's face, skin tone, and features exactly the same. Only change the hairstyle. 
+Make it look natural and realistic as if the person actually has this hairstyle.
+The result should be a photorealistic image.`;
 
-        const descriptionPrompt = `Look at this person's photo and the desired hairstyle: "${stylePrompt}".
-        Describe in 2-3 sentences what they would look like with this new hairstyle. 
-        Focus on how it complements their face.
-        Write in Korean.`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash-001',
+        const response = await imagenAi.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
             contents: [
                 {
                     role: 'user',
                     parts: [
-                        { text: descriptionPrompt },
+                        { text: editPrompt },
                         { inlineData: { mimeType, data: base64Image } }
                     ]
                 }
-            ]
+            ],
+            config: {
+                responseModalities: ['TEXT', 'IMAGE']
+            }
         });
 
-        const textResponse = response.candidates[0].content.parts
-            .filter(p => p.text)
-            .map(p => p.text)
-            .join('');
+        // Extract generated image from response
+        let generatedImage = null;
+        let textResponse = '';
 
-        console.log(`✅ 스타일 텍스트 생성 완료: ${styleName}`);
+        for (const part of response.candidates[0].content.parts) {
+            if (part.text) {
+                textResponse += part.text;
+            } else if (part.inlineData) {
+                generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            }
+        }
 
-        // Return original image + generated text description
-        // (Since we can't generate a new image with free tier)
-        res.json({
-            image: `data:${mimeType};base64,${base64Image}`,
-            text: textResponse
-        });
+        if (generatedImage) {
+            console.log(`✅ 스타일 이미지 생성 완료: ${styleName}`);
+            res.json({
+                image: generatedImage,
+                text: textResponse || `${styleName} 스타일이 적용되었습니다.`
+            });
+        } else {
+            // Fallback: return original image with text description
+            console.log(`⚠️ 이미지 생성 실패, 텍스트만 반환: ${styleName}`);
+            res.json({
+                image: `data:${mimeType};base64,${base64Image}`,
+                text: textResponse || '이미지 생성에 실패했습니다.'
+            });
+        }
 
     } catch (error) {
-        console.error('❌ 이미지/텍스트 생성 오류:', error);
+        console.error('❌ 이미지 생성 오류:', error);
         res.status(500).json({ error: '생성 중 오류가 발생했습니다: ' + error.message });
     }
 });
@@ -155,10 +170,16 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'code.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(`
+// Vercel serverless export
+export default app;
+
+// Only listen when running locally (not on Vercel)
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`
 🚀 AI 헤어스타일 서버 시작! (Real AI RESTORED)
 📍 http://localhost:${PORT}
 🔑 API 키: ${process.env.GEMINI_API_KEY ? '설정됨 ✅' : '미설정 ❌'}
-  `);
-});
+    `);
+    });
+}

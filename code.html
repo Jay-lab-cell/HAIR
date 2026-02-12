@@ -578,10 +578,10 @@
                             금액</span><span class="text-2xl font-black gradient-text">₩9,900</span></div>
                 </div>
                 <div class="space-y-3">
-                    <button onclick="processPayment('card')"
+                    <button onclick="processPayment(event, 'card')"
                         class="cta-button w-full h-14 rounded-2xl text-dark-900 font-bold text-lg flex items-center justify-center gap-3"><span
                             class="material-symbols-outlined">credit_card</span>카드 결제</button>
-                    <button onclick="processPayment('kakao')"
+                    <button onclick="processPayment(event, 'kakao')"
                         class="w-full h-14 rounded-2xl bg-[#FEE500] text-[#3C1E1E] font-bold text-lg flex items-center justify-center gap-3 hover:bg-[#F5DC00] transition-all">카카오페이</button>
                 </div>
                 <button onclick="showScreen('results-blur')"
